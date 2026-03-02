@@ -9,9 +9,9 @@ REM Debug server if the -d positional argument is provided in either #1 or #2
 IF "%~1"=="" (
   goto :continue
 ) ELSE IF "%~1"=="-s" (
-  set askIfOff=%~1
+  set "askIfOff=%~1"
 ) ELSE IF "%~1"=="-d" (
-  set debugServer=%~1
+  set "debugServer=%~1"
 )
 shift
 goto :loop
@@ -20,12 +20,12 @@ goto :loop
 
 REM Assign default value if -s is not present
 if not defined %askIfOff (
-  set askIfOff=-yes
+  set "askIfOff=-yes"
 )
 
 REM Assign default value if -d is not present
 if not defined %debugServer (
-  set debugServer=-no
+  set "debugServer=-no"
   set "search=local_server/target/debug"
   set "replace=local_server/target/release"
   set "serverType=release"
@@ -62,7 +62,7 @@ echo.
 IF "%askIfOff%"=="-s" (
   goto :server_off
 ) ELSE (
-  set /P c=Is the server off? [Y/n]: 
+  set /P "c=Is the server off? [Y/n]: "
 )
 if /I "%c%" EQU "" goto :server_off
 if /I "%c%" EQU "Y" goto :server_off
@@ -81,10 +81,10 @@ exit
 :server_off
 
 REM Identify if app_setup has already been run, and run it anything is missing.
-if not exist ..\..\buildSpec.json set runSetup=1
-if not exist ..\..\globalBuildResources\i18nPatch.json set runSetup=1
-if not exist ..\..\globalBuildResources\product.json set runSetup=1
-if not exist ..\buildResources\setup\app_setup.json set runSetup=1
+if not exist ..\..\buildSpec.json set "runSetup=1"
+if not exist ..\..\globalBuildResources\i18nPatch.json set "runSetup=1"
+if not exist ..\..\globalBuildResources\product.json set "runSetup=1"
+if not exist ..\buildResources\setup\app_setup.json set "runSetup=1"
 if defined %runSetup (
   cmd /c .\app_setup.bat
   echo.
@@ -116,17 +116,17 @@ endlocal
 
 REM set available port environment variable (returned as %ROCKET_PORT% )
 call ..\buildResources\find_free_port.bat
-echo "%ROCKET_PORT%"
+echo Serving on port %ROCKET_PORT%...
 
 if exist ..\build (
-  echo "Removing last build environment"
+  echo Removing last build environment...
   rmdir ..\build /s /q
 )
 if not exist ..\build (
-  echo "Assembling build environment"
+  echo Assembling build environment...
   node build.js
 )
-echo "Running with local server in %serverType% mode..."
+echo Running with local server in %serverType% mode...
 cd ..\build
-SET APP_RESOURCES_DIR=.\lib\
+SET "APP_RESOURCES_DIR=.\lib\"
 start "" ".\bin\server.exe"
