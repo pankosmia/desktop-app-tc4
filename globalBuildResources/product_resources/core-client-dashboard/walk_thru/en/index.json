@@ -2,7 +2,7 @@
     "name": "tC3 => tc4 Migration Walk-Thru",
     "steps": [
         {
-            "title": "Set up the translation",
+            "title": "Overview",
             "bodyPath": "step1.md"
         },
                 {
@@ -13,5 +13,5 @@
             "title": "First setup to get going",
             "bodyPath": "step3.md"
         }
-
+    ]
 }
