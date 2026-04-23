@@ -1,16 +1,16 @@
 {
-    "name": "tC3 => tc4 Migration Walk-Thru",
+    "name": "Getting started",
     "steps": [
         {
             "title": "Overview",
             "bodyPath": "step1.md"
         },
                 {
-            "title": "Set up checks",
+            "title": "Set up the translation",
             "bodyPath": "step2.md"
         },
         {
-            "title": "First setup to get going",
+            "title": "Set up checks",
             "bodyPath": "step3.md"
         }
     ]
