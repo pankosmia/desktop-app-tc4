@@ -3,7 +3,7 @@
 - Click *New document* on the dashboard and select *translationCore Checks*. Follow the steps to link your translation.
 - Open your new checking document. You may be prompted to download some needed resources. Download them all.
 - You can now click *Add checks for book* at will.
-- **If you have translationCore 3 work to import**.
+- **If you have translationCore 3 book projects to import**.
     - In translationCore 3, click *Export as zip* on each book.
     - In translationCore 4, click *Import tC3 Book* for each book.
 

@@ -4,7 +4,7 @@
     - Click *Download documents* on the dashboard and then *Browse Door43*. Find and download your translation.
     - If your work is still not showing on the dashboard, you may need to *Go to documents*, locate your work and use *Make editable copy* in the *more actions* menu.
 
-- **Access to USFM book files (translationCore 3 users case)**.
+- **Access to USFM book files (including for translationCore 3 users)**.
     - Click *New document* on the dashboard and select *Biblical Text*. 
     - In the final step regarding the document’s content, select *Import existing USFM translation*. Add all your individual USFM book files.
 
