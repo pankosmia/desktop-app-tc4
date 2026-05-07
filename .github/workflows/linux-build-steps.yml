@@ -68,7 +68,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.11.0'
+          node-version: '20.19.5'
 
       # Install the repository
       - name: Install this repo
