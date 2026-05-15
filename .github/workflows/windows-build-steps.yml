@@ -17,9 +17,6 @@ on:
       zip-name:
         description: "Name of the generated ZIP file"
         value: ${{ jobs.build.outputs.zip-name }}
-      exe-name:
-        description: "Name of the generated installer EXE file"
-        value: ${{ jobs.build.outputs.exe-name }}
       electronite-exe-name:
         description: "Name of the generated Electronite installer EXE file"
         value: ${{ jobs.build.outputs.electronite-exe-name }}
@@ -29,7 +26,6 @@ jobs:
     runs-on: ${{ inputs.runner }}
     outputs:
       zip-name: ${{ steps.get-zip-name.outputs.zip-name }}
-      exe-name: ${{ steps.get-exe-name.outputs.exe-name }}
       electronite-exe-name: ${{ steps.get-electronite-exe-name.outputs.electronite-exe-name }}
 
     # Set process.env.CI to false to prevent treating warnings as errors
@@ -120,6 +116,18 @@ jobs:
         working-directory: .\windows\scripts
         run: .\clone.bat
 
+      # Check npm version
+      - name: Check npm version
+        shell: pwsh
+        run: |
+          npm --version
+          node --version
+
+      # Confirm Node architecture
+      - name: Check Node arch
+        shell: pwsh
+        run: node -p "process.arch"
+
       # Install and build clients
       - name: Build ${{ inputs.branches }} clients
         working-directory: .\windows\scripts
@@ -139,13 +147,13 @@ jobs:
       - name: Get names for zip artifact
         id: get-zip-name
         run: |
-          echo "Zip for terminal name:"
-          $ZIP_NAME = Get-ChildItem -Path ".\releases\windows\*.zip" -Name
+          echo "Zip for cli name:"
+          $ZIP_NAME = Get-ChildItem -Path ".\releases\windows\*-cli.zip" -Name
           echo "zip-name=$ZIP_NAME" >> $env:GITHUB_OUTPUT
           echo "ZIP_NAME=$ZIP_NAME" >> $env:GITHUB_ENV
 
-      # Upload zip for terminal artifact
-      - name: Upload zip for terminal artifact
+      # Upload zip for cli artifacts
+      - name: Upload zip for cli artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ZIP_NAME }}
@@ -159,34 +167,6 @@ jobs:
           echo "github.event.repository.name: ${{ github.event.repository.name }}"
           echo "github.workspace: ${{ github.workspace }}"
 
-      # Run the Inno Setup Installer and build the exe
-      - name: Compile .ISS to .EXE Installer
-        working-directory: .\windows\install
-        run: |
-          echo "APP_NAME: ${{ env.APP_NAME }}"
-          echo "APP_VERSION: ${{ env.APP_VERSION }}"
-          echo "FILE_APP_NAME: ${{ env.FILE_APP_NAME }}"
-          echo "APP_SHORT_NAME: ${{ env.APP_SHORT_NAME }}"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /O"..\..\releases\windows" makeInstall.iss
-
-      # Get names for exe artifacts
-      - name: Get names for exe artifact
-        id: get-exe-name
-        run: |
-          echo "Exe for terminal name:"
-          $EXE_NAME = Get-ChildItem -Path ".\releases\windows\*.exe" -Name
-          echo "exe-name=$EXE_NAME" >> $env:GITHUB_OUTPUT
-          echo "EXE_NAME=$EXE_NAME" >> $env:GITHUB_ENV
-
-      # Upload exe artifact
-      - name: Upload exe artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.EXE_NAME }}
-          path: .\releases\windows\${{ env.EXE_NAME }}
-          if-no-files-found: error
-          retention-days: 90
-
       # Build electronite
       - name: Run makeAllInstallsElectronite.ps1
         working-directory: ./windows/install
@@ -197,7 +177,7 @@ jobs:
         id: get-electronite-exe-name
         run: |
           echo "Electronite exe for terminal name:"
-          $EXE_NAME = Get-ChildItem -Path ".\releases\windows\intel64\*.exe" -Name
+          $EXE_NAME = Get-ChildItem -Path ".\releases\windows\*.exe" -Name
           echo "electronite-exe-name=$EXE_NAME" >> $env:GITHUB_OUTPUT
           echo "ELECTRONITE_EXE_NAME=$EXE_NAME" >> $env:GITHUB_ENV
 
@@ -206,6 +186,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ELECTRONITE_EXE_NAME }}
-          path: .\releases\windows\intel64\${{ env.ELECTRONITE_EXE_NAME }}
+          path: .\releases\windows\${{ env.ELECTRONITE_EXE_NAME }}
           if-no-files-found: error
           retention-days: 90

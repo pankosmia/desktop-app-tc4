@@ -56,8 +56,8 @@ jobs:
           echo "OS is ${{ inputs.os }}"
           echo "Log level is ${{ inputs.log_level }}"
 
-  build-macos-intel:
-    name: Build on macOS Intel64 (x64)
+  build-macos-x64:
+    name: Build on macOS x64 (Intel64)
     if: ${{ inputs.os == 'all' || inputs.os == 'macos' }}
     uses: ./.github/workflows/macos-build-steps.yml
     with:
@@ -66,7 +66,7 @@ jobs:
       log_level: ${{ inputs.log_level }}
       branches: ${{ inputs.branches == 'all of main' && 'main' || inputs.branches == 'all of qa' && 'qa' || 'dev' }}
 
-  build-macos-arm:
+  build-macos-arm64:
     name: Build on macOS ARM64 (Apple Silicon)
     if: ${{ inputs.os == 'all' || inputs.os == 'macos' }}
     uses: ./.github/workflows/macos-build-steps.yml
@@ -76,7 +76,7 @@ jobs:
       log_level: ${{ inputs.log_level }}
       branches: ${{ inputs.branches == 'all of main' && 'main' || inputs.branches == 'all of qa' && 'qa' || 'dev' }}
 
-  build-windows:
+  build-windows-x64:
     name: Build on Windows x64
     if: ${{ inputs.os == 'all' || inputs.os == 'windows' }}
     uses: ./.github/workflows/windows-build-steps.yml
@@ -85,7 +85,16 @@ jobs:
       log_level: ${{ inputs.log_level }}
       branches: ${{ inputs.branches == 'all of main' && 'main' || inputs.branches == 'all of qa' && 'qa' || 'dev' }}
 
-  build-linux:
+  build-windows-arm64:
+    name: Build on Windows arm64
+    if: ${{ inputs.os == 'all' || inputs.os == 'windows' }}
+    uses: ./.github/workflows/windows-build-steps.yml
+    with:
+      runner: windows-11-arm
+      log_level: ${{ inputs.log_level }}
+      branches: ${{ inputs.branches == 'all of main' && 'main' || inputs.branches == 'all of qa' && 'qa' || 'dev' }}
+
+  build-linux-x64:
     name: Build on Linux x64
     if: ${{ inputs.os == 'all' || inputs.os == 'linux' }}
     uses: ./.github/workflows/linux-build-steps.yml
@@ -94,8 +103,17 @@ jobs:
       log_level: ${{ inputs.log_level }}
       branches: ${{ inputs.branches == 'all of main' && 'main' || inputs.branches == 'all of qa' && 'qa' || 'dev' }}
 
+  build-linux-arm64:
+    name: Build on Linux arm64
+    if: ${{ inputs.os == 'all' || inputs.os == 'linux' }}
+    uses: ./.github/workflows/linux-build-steps.yml
+    with:
+      runner: ubuntu-22.04-arm
+      log_level: ${{ inputs.log_level }}
+      branches: ${{ inputs.branches == 'all of main' && 'main' || inputs.branches == 'all of qa' && 'qa' || 'dev' }}
+
   finalize:
-    needs: [build-macos-intel, build-macos-arm, build-windows, build-linux]
+    needs: [build-macos-x64, build-macos-arm64, build-windows-x64, build-windows-arm64, build-linux-x64, build-linux-arm64]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -125,16 +143,18 @@ jobs:
             esac
           }
 
-          check "macos-intel"  "${{ needs.build-macos-intel.result }}"
-          check "macos-arm"    "${{ needs.build-macos-arm.result }}"
-          check "windows"      "${{ needs.build-windows.result }}"
-          check "linux"        "${{ needs.build-linux.result }}"
+          check "macos-x64"  "${{ needs.build-macos-x64.result }}"
+          check "macos-arm64"    "${{ needs.build-macos-arm64.result }}"
+          check "windows-x64"      "${{ needs.build-windows-x64.result }}"
+          check "windows-arm64"      "${{ needs.build-windows-arm64.result }}"
+          check "linux-x64"        "${{ needs.build-linux-x64.result }}"
+          check "linux-arm64"        "${{ needs.build-linux-arm64.result }}"
 
           echo "Selected builds completed successfully"
 
 # TODO
 #  create-universal-binary:
-#    needs: [build-macos-intel, build-macos-arm]
+#    needs: [build-macos-x64, build-macos-arm64]
 #    runs-on: macos-latest
 #    steps:
 #      - name: Checkout repository
@@ -143,13 +163,13 @@ jobs:
 #      - name: Download Intel artifact
 #        uses: actions/download-artifact@v4
 #        with:
-#          name: ${{ needs.build-macos-intel.outputs.zip-name }}
+#          name: ${{ needs.build-macos-x64.outputs.zip-name }}
 #          path: ./downloads/intel
 #
 #      - name: Download ARM artifact
 #        uses: actions/download-artifact@v4
 #        with:
-#          name: ${{ needs.build-macos-arm.outputs.zip-name }}
+#          name: ${{ needs.build-macos-arm64.outputs.zip-name }}
 #          path: ./downloads/arm
 #
 #      - name: Create universal binary

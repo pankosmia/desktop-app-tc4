@@ -28,12 +28,6 @@ on:
       zip-name:
         description: "Name of the generated ZIP file"
         value: ${{ jobs.build.outputs.zip-name }}
-      pkg-name-arm:
-        description: "Name of the generated ARM64 package file"
-        value: ${{ jobs.build.outputs.pkg-name-arm }}
-      pkg-name-intel:
-        description: "Name of the generated Intel64 package file"
-        value: ${{ jobs.build.outputs.pkg-name-intel }}
 
 jobs:
   build:
@@ -119,7 +113,6 @@ jobs:
           chmod +x ./macos/scripts/build_clients.zsh
           chmod +x ./macos/scripts/build_server.zsh
           chmod +x ./macos/scripts/bundle_zip.zsh
-          chmod +x ./macos/install/makeAllInstalls.sh
 
       - name: Run app_setup.zsh
         working-directory: ./macos/scripts
@@ -141,18 +134,18 @@ jobs:
         working-directory: ./macos/scripts
         run: ./bundle_zip.zsh -s -g
 
-      - name: Get zip for terminal names
+      - name: Get zip cli names
         id: get-zip-name
         run: |
-          echo "Zip for terminal name:"
-          ls -als ./releases/macos/*.zip
+          echo "Zip cli name:"
+          ls -als ./releases/macos/*-cli.zip
           cd ./releases/macos
-          ZIP_NAME=$(ls *.zip | head -n 1)
+          ZIP_NAME=$(ls *-cli.zip | head -n 1)
           echo "zip-name=$ZIP_NAME" >> $GITHUB_OUTPUT
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
           cd ../..
 
-      - name: Upload zip for terminal artifacts
+      - name: Upload zip cli artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ZIP_NAME }}
@@ -160,71 +153,18 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Run makeAllInstalls.sh
-        working-directory: ./macos/install
-        run: ./makeAllInstalls.sh
-
-      - name: Get Installer names
-        id: get-installer-names
-        run: |
-          echo "Arm64 install:"
-          # check if built
-          if [ -n "$(ls ./macos/release/arm64/*.pkg 2>/dev/null)" ]; then
-            cd ./macos/release/arm64
-            echo "Found arm64 release:"
-            ls -als *.pkg
-            PKG_NAME_ARM=$(ls *.pkg | head -n 1)
-            echo "pkg-name-arm=$PKG_NAME_ARM" >> $GITHUB_OUTPUT
-            echo "PKG_NAME_ARM=$PKG_NAME_ARM" >> $GITHUB_ENV
-            cd ../../..
-          else
-            echo "No .pkg files found in ./macos/release/arm64/"
-          fi
-          
-          echo "Intel64 install:"
-          # check if built
-          if [ -n "$(ls ./macos/release/intel64/*.pkg 2>/dev/null)" ]; then
-            cd ./macos/release/intel64
-            echo "Found intel64 release:"
-            ls -als *.pkg
-            PKG_NAME_INTEL=$(ls *.pkg | head -n 1)
-            echo "pkg-name-intel=$PKG_NAME_INTEL" >> $GITHUB_OUTPUT
-            echo "PKG_NAME_INTEL=$PKG_NAME_INTEL" >> $GITHUB_ENV
-            cd ../../..
-          else
-            echo "No .pkg files found in ./macos/release/intel64/"
-          fi
-
-      - name: Upload arm64 artifacts
-        if: env.PKG_NAME_ARM != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PKG_NAME_ARM }}
-          path: ./macos/release/arm64/${{ env.PKG_NAME_ARM }}
-          if-no-files-found: error
-          retention-days: 90
-
-      - name: Upload intel64 artifacts
-        if: env.PKG_NAME_INTEL != '' # only upload once
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PKG_NAME_INTEL }}
-          path: ./macos/release/intel64/${{ env.PKG_NAME_INTEL }}
-          if-no-files-found: error
-          retention-days: 90
-
-      - name: Setup a README named for arm64 and intel64 artifact
+      - name: Setup a README named for arm64 and x64 artifact
         if: env.PKG_NAME_ARM != '' # only setup once
         run: |
-          echo "Setup a README named for arm64 and intel64 artifact"
-          cp ./macos/build/README.txt ./macos/build/${{ env.FILE_APP_NAME }}-macos-installer-readme-arm64-and-intel64.txt
+          echo "Setup a README named for arm64 and x64 artifact"
+          cp ./macos/build/README.txt ./macos/build/${{ env.FILE_APP_NAME }}-macos-installer-readme-arm64-and-x64.txt
 
-      - name: Upload README for arm64 and intel64 artifact
+      - name: Upload README for arm64 and x64 artifact
         if: env.PKG_NAME_ARM != '' # only upload once
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.FILE_APP_NAME }}-macos-installer-readme-arm64-and-intel64.txt
-          path: ./macos/build/${{ env.FILE_APP_NAME }}-macos-installer-readme-arm64-and-intel64.txt
+          name: ${{ env.FILE_APP_NAME }}-macos-installer-readme-arm64-and-x64.txt
+          path: ./macos/build/${{ env.FILE_APP_NAME }}-macos-installer-readme-arm64-and-x64.txt
           if-no-files-found: error
           retention-days: 90
 
@@ -238,28 +178,28 @@ jobs:
         run: |
           echo "Arm64 install:"
           # check if built
-          if [ -n "$(ls ./releases/macos/*-standalone-arm64*.pkg 2>/dev/null)" ]; then
+          if [ -n "$(ls ./releases/macos/*-arm64.pkg 2>/dev/null)" ]; then
             cd ./releases/macos
             echo "Found arm64 release:"
             ls -als *.pkg
-            ELECTRONITE_PKG_NAME_ARM=$(ls *-standalone-arm64*.pkg | head -n 1)
+            ELECTRONITE_PKG_NAME_ARM=$(ls *-arm64.pkg | head -n 1)
             echo "ELECTRONITE_PKG_NAME_ARM=$ELECTRONITE_PKG_NAME_ARM" >> $GITHUB_ENV
             cd ../..
           else
             echo "No arm64 .pkg files found in ./releases/macos"
           fi
           
-          echo "Intel64 install:"
+          echo "x64 install:"
           # check if built
-          if [ -n "$(ls ./releases/macos/*-standalone-intel64*.pkg 2>/dev/null)" ]; then
+          if [ -n "$(ls ./releases/macos/*-x64.pkg 2>/dev/null)" ]; then
             cd ./releases/macos
-            echo "Found intel64 release:"
+            echo "Found x64 release:"
             ls -als *.pkg
-            ELECTRONITE_PKG_NAME_INTEL=$(ls *-standalone-intel64*.pkg | head -n 1)
+            ELECTRONITE_PKG_NAME_INTEL=$(ls *-x64.pkg | head -n 1)
             echo "ELECTRONITE_PKG_NAME_INTEL=$ELECTRONITE_PKG_NAME_INTEL" >> $GITHUB_ENV
             cd ../..
           else
-            echo "No intel64 .pkg files found in ./releases/macos"
+            echo "No x64 .pkg files found in ./releases/macos"
           fi
 
       - name: Upload electronite arm64 artifacts
@@ -271,7 +211,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Upload electronite intel64 artifacts
+      - name: Upload electronite x64 artifacts
         if: env.ELECTRONITE_PKG_NAME_INTEL != ''
         uses: actions/upload-artifact@v4
         with:

@@ -2,7 +2,7 @@ Package: {PACKAGE_NAME}
 Version: {PACKAGE_VERSION}
 Section: editors
 Priority: optional
-Architecture: amd64
+Architecture: {DEB_ARCH}
 Installed-Size: {INSTALLED_SIZE}
 Maintainer: Yakob Aleksandrovich (https://github.com/yakob-aleksandrovich/)
 Description: Bible Translation, the CCBT way

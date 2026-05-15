@@ -7,14 +7,14 @@
     It creates the necessary directory structure, copies required files, and compiles the installer.
 
 .PARAMETER arch
-    The target architecture for the installer (e.g., x64, x86).
+    The target architecture for the installer (e.g., x64, arm64, x86).
 
 .PREREQUISITES
     - Inno Setup 6 must be installed at "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
     - APP_VERSION environment variable must be set in app_config.env
 
 .OUTPUTS
-    Creates an installer at releases\windows\$arch\<app-name>_installer_*.exe
+    Creates an installer at releases\windows\<appname>-<version>-win-<arch>.exe
 
 .NOTES
     - Cleans up existing installers before building
@@ -23,7 +23,7 @@
     - Compiles the installer using Inno Setup
 
 .PARAMETER arch
-Target architecture for the installer (e.g., x64, x86)
+Target architecture for the installer (e.g., x64, arm64, x86)
 
 .PARAMETER Dev
 Specify -Dev "Y" when generating a development viewer.
@@ -57,7 +57,7 @@ try {
         Write-Host "Set it in app_config.env"
         exit 1
     }
-    
+
     # Check if FILE_APP_NAME environment variable is set
     if (-not $env:FILE_APP_NAME) {
         Write-Host "FILE_APP_NAME $eMsg. Generating..."
@@ -78,7 +78,7 @@ try {
     # Needed for local bundles. Not required in GHA but does no harm.
     if ($Dev -ne 'Y') {
         # Clean up any existing installers
-        Get-ChildItem -Path "..\..\releases\windows\"$fileAppName"_installer_*.exe" | Remove-Item -Force
+        Remove-Item -Path "..\..\releases\windows\$($env:FILE_APP_NAME)-*-win-$arch.exe" -Force -ErrorAction SilentlyContinue
     }
 
     # Change to build directory
@@ -194,6 +194,9 @@ try {
       $scriptsPath = "$projectPath\scripts"
       New-Item -ItemType Directory -Force -Path $scriptsPath | Out-Null
 
+      # Map internal arch token to output naming
+      $env:ARCH = $arch
+
       # Call Inno Setup to create installer
       Write-Host "Building installer..."
 
@@ -204,7 +207,7 @@ try {
       }
 
       Set-Location -Path ".."
-      $outputPath = "..\releases\windows\$arch"
+      $outputPath = "..\releases\windows"
 
       # Delete existing exe files from releases directory, only if path exists
       if (Test-Path "$outputPath\*.exe") {

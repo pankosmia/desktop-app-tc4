@@ -112,11 +112,11 @@ jobs:
         working-directory: ./linux/scripts
         run: ./bundle_viewer.bsh
 
-      - name: Get tgz for terminal names
+      - name: Get tgz for cli name
         id: get-tgz-name
         run: |
-          echo "tgz for terminal name:"
-          ls -als ./releases/linux/*.tgz
+          echo "tgz for cli name:"
+          ls -als ./releases/linux/*-cli.tgz
           cd ./releases/linux
           TGZ_NAME=$(ls *.tgz | head -n 1)
           echo "tgz-name=$TGZ_NAME" >> $GITHUB_OUTPUT
@@ -134,7 +134,7 @@ jobs:
           echo "DEB_NAME=$DEB_NAME" >> $GITHUB_ENV
           cd ../..
 
-      - name: Upload tgz for terminal artifacts
+      - name: Upload tgz for cli artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.TGZ_NAME }}
@@ -142,7 +142,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Upload deb for terminal artifacts
+      - name: Upload deb for cli artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.DEB_NAME }}

@@ -1,4 +1,26 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron');
+
 contextBridge.exposeInMainWorld('electronAPI', {
-  setCanClose: (canClose) => ipcRenderer.send('setCanClose', canClose)
-})
+  // Existing
+  setCanClose: (canClose) => ipcRenderer.send('setCanClose', canClose),
+
+  // Firefox download
+  downloadFirefox: () => ipcRenderer.send('download-firefox'),
+  checkFirefoxInstalled: () => ipcRenderer.invoke('check-firefox-installed'),
+  onDownloadProgress: (callback) => {
+    const handler = (_event, percent) => callback(percent);
+    ipcRenderer.on('download-progress', handler);
+    return () => ipcRenderer.removeListener('download-progress', handler);
+  },
+  onDownloadComplete: (callback) => {
+    const handler = (_event, success) => callback(success);
+    ipcRenderer.on('download-complete', handler);
+    return () => ipcRenderer.removeListener('download-complete', handler);
+  },
+});
+
+contextBridge.exposeInMainWorld('api', {
+  // Existing
+  generatePdf: (uuid) => ipcRenderer.invoke('generate-pdf', uuid),
+
+});

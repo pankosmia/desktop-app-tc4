@@ -1,14 +1,14 @@
 #%%APP_NAME%% %%APP_VERSION%% MacOS
 
 Install:
-  1. Double-click %%FILE_APP_NAME%%-macos-installer-standalone-[arm64|intel64]-%%APP_VERSION%%.pkg to start the installer.
+  1. Double-click %%FILE_APP_NAME%%-%%APP_VERSION%%-macos-[arm64|x64].pkg to start the installer.
     * If you get a message saying "Not Opened", then:
       a. Click either "Done" or "Cancel", depending on which of those options you have.
       b. Go to Apple menu > System Preference >  Privacy and Security > General > and at the bottom, where it shows the file that was blocked, click "Allow Anyway" .
       c. Wait until the "___ was blocked" message disappears from the settings page.
     * If you get "can't open the file" or something else similar, then:
       * Look under Settings > Privacy and Security > Files & Folders > Terminal, and see if you need to turn on permissions for Desktop, OR, move your %%FILE_APP_NAME%%%% folder to another location or re-unzip in another location and run from there in a terminal.
-      * Or, another possibility is that 'Move to Trash' could have been selected on %%FILE_APP_NAME%%-macos-installer-standalone-[arm64|intel64]-%%APP_VERSION%%.pkg on a prior attempt to run. If this was done, then you can find it in your trash and 'put back', or re-unzip.
+      * Or, another possibility is that 'Move to Trash' could have been selected on %%FILE_APP_NAME%%-%%APP_VERSION%%-macos-[arm64|x64]-.pkg on a prior attempt to run. If this was done, then you can find it in your trash and 'put back', or re-unzip.
   2. Continue the Installation, only double-clicking again on the pkg file if the process isn't automatically continued for you.
 
 For first use of any app built on Pankosmia:

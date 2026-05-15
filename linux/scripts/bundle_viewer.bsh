@@ -21,7 +21,20 @@ TO_DIR=/tmp/$PACKAGE_NAME
 INSTALL_DIR=$TO_DIR/opt/$PACKAGE_NAME
 RELEASE_DIR=$REPOPATH/releases/linux
 
-# Collect all components for Liminal and then build it
+# Detect current CPU architecture
+CPU_ARCH=$(uname -m)
+if [ "$CPU_ARCH" = "x86_64" ]; then
+    OUTPUT_ARCH="x64"
+    DEB_ARCH="amd64"
+elif [ "$CPU_ARCH" = "aarch64" ]; then
+    OUTPUT_ARCH="arm64"
+    DEB_ARCH="arm64"
+else
+    echo "Error: Unsupported CPU architecture: $CPU_ARCH"
+    exit 1
+fi
+
+# Collect all components and then build it
 # Create build dir if not exist
 if ! [ -d $TO_DIR ]; then
     mkdir -p $INSTALL_DIR/viewer
@@ -69,7 +82,7 @@ sed -i "s|{APP_NAME}|$APP_NAME|g; s|{APP_VERSION}|$APP_VERSION|g; s|{PACKAGE_NAM
 # Debian package description, placeholders -> actual values
 cp $FROM_DIR/linux/buildResources/control $TO_DIR/DEBIAN
 INSTALLED_SIZE=`du -c $TO_DIR | grep total | cut -f1`
-sed -i "s|{PACKAGE_VERSION}|$APP_VERSION|g; s|{PACKAGE_NAME}|$PACKAGE_NAME|g; s|{INSTALLED_SIZE}|$INSTALLED_SIZE|g" $TO_DIR/DEBIAN/control
+sed -i "s|{PACKAGE_VERSION}|$APP_VERSION|g; s|{PACKAGE_NAME}|$PACKAGE_NAME|g; s|{INSTALLED_SIZE}|$INSTALLED_SIZE|g; s|{DEB_ARCH}|$DEB_ARCH|g" $TO_DIR/DEBIAN/control
 
 # Copy preinst to DEBIAN package
 cp $FROM_DIR/linux/buildResources/preinst $TO_DIR/DEBIAN
@@ -78,7 +91,7 @@ chmod +x $TO_DIR/DEBIAN/preinst
 
 # Finally, build the package and write it to the Release directory
 cd /tmp
-dpkg-deb --root-owner-group --build $PACKAGE_NAME $RELEASE_DIR/$PACKAGE_NAME-linux-standalone-intel64-$APP_VERSION.deb
+dpkg-deb --root-owner-group --build $PACKAGE_NAME $RELEASE_DIR/$PACKAGE_NAME-$APP_VERSION-linux-$OUTPUT_ARCH.deb
 
 # Get back into the scripts dir
 cd $REPOPATH/linux/scripts

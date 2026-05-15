@@ -85,6 +85,17 @@ if ! [[ $isGHA =~ ^(-g) ]]; then
   node build.js
 fi
 
+# Detect current CPU architecture
+CPU_ARCH=$(uname -m)
+if [ "$CPU_ARCH" = "x86_64" ]; then
+    CPU_ARCH="x64"
+elif [ "$CPU_ARCH" = "aarch64" ]; then
+    CPU_ARCH="arm64"
+else
+    echo "Error: Unsupported CPU architecture: $CPU_ARCH"
+    exit 1
+fi
+
 echo
 echo "   **********************************"
 echo "   *                                *"
@@ -101,5 +112,5 @@ APP_NAME=${APP_NAME,,}
 APP_NAME=${APP_NAME// /-}
 # Make executable and compress
 chmod +x $APP_NAME
-tar cfz ../../releases/linux/$APP_NAME-linux-$APP_VERSION.tgz .
+tar cfz ../../releases/linux/$APP_NAME-$APP_VERSION-linux-$CPU_ARCH-cli.tgz .
 cd ../scripts

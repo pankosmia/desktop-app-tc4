@@ -54,21 +54,21 @@ echo "APP_SHORT_NAME=$APP_SHORT_NAME"
 export APP_SHORT_NAME="$APP_SHORT_NAME"
 
 ElectronArm64="https://github.com/unfoldingWord/electronite/releases/download/v37.1.0-graphite/electronite-v37.1.0-graphite-linux-arm64.zip"
-ElectronIntel64="https://github.com/unfoldingWord/electronite/releases/download/v37.1.0-graphite/electronite-v37.1.0-graphite-linux-x64.zip"
+ElectronX64="https://github.com/unfoldingWord/electronite/releases/download/v37.1.0-graphite/electronite-v37.1.0-graphite-linux-x64.zip"
 
 # Detect current CPU architecture
 CPU_ARCH=$(uname -m)
 if [ "$CPU_ARCH" = "x86_64" ]; then
-    CPU_ARCH="intel64"
-elif [ "$CPU_ARCH" = "arm64" ]; then
+    CPU_ARCH="x64"
+elif [ "$CPU_ARCH" = "aarch64" ]; then
     CPU_ARCH="arm64"
 else
-    echo "Error: Unsupported CPU architecture: $CPU_ARCH, default to intel64"
-    CPU_ARCH="intel64"
+    echo "Error: Unsupported CPU architecture: $CPU_ARCH, default to x64"
+    CPU_ARCH="x64"
 fi
 
-# Loop through creating installs for both arm64 and intel64
-for ARCH in "intel64" "arm64"; do
+# Loop through creating installs for both arm64 and x64
+for ARCH in "x64" "arm64"; do
     # Skip if not running on native architecture
     if [ "$ARCH" != "$CPU_ARCH" ]; then
         echo "Skipping $ARCH build on $CPU_ARCH machine"
@@ -77,11 +77,11 @@ for ARCH in "intel64" "arm64"; do
   
     echo "Building for architecture: $ARCH"
   
-    downloadElectronUrl="$ElectronIntel64"
-    expectedZip="*-intel64-*.zip"
+    downloadElectronUrl="$ElectronX64"
+    expectedZip="*-x64-cli.zip"
     if [ "$ARCH" = "arm64" ]; then
         downloadElectronUrl="$ElectronArm64"
-        expectedZip="*-arm64-*.zip"
+        expectedZip="*-arm64-cli.zip"
     fi
 
     cd ../install # required on local builds runs; no harm in gha

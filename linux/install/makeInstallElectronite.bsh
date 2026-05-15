@@ -4,7 +4,7 @@
 #
 # Synopsis:
 #   Creates a linux installation package (.pkg) for the application
-#   based on provided architecture (arm64 or intel64) and APP_VERSION.
+#   based on provided architecture (arm64 or x64) and APP_VERSION.
 #
 # Description:
 #   This script automates the process of building a linux installer package by:
@@ -16,13 +16,13 @@
 #
 # Requirements:
 #   - APP_VERSION environment variable must be set (e.g., export APP_VERSION="0.2.7")
-#   - Architecture parameter must be provided when running the script (arm64 or intel64)
+#   - Architecture parameter must be provided when running the script (arm64 or x64)
 #   - XCode command line tools must be installed
 #   - brew package manager with shc installed (`brew install shc`)
 #
 # Parameters:
 #   $1 : Architecture type (Required)
-#        Accepted values: arm64, intel64
+#        Accepted values: arm64, x64
 #   $2 : -d indicates a development run (for building viewer only)
 #
 # Returns:
@@ -57,9 +57,7 @@ devRun="${2:-no}" # This is a development viewer run if $1 is -d
 
 # Needed for local bundles. Not required in GHA but does no harm.
 if ! [[ $devRun =~ ^(-d) ]]; then
-  PKG_NAME="${FILE_APP_NAME}-linux-installer-standalone-${arch}-${APP_VERSION}.pkg"
-  rm -f ./build/${PKG_NAME}
-  rm -f ../releases/linux/${PKG_NAME}
+  rm -f ../releases/linux/${FILE_APP_NAME}-*-linux-${arch}.deb
 fi
 
 cd ../build || exit 1

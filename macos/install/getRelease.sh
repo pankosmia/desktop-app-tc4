@@ -10,7 +10,7 @@
 #
 # Parameters:
 #   downloadUrl - The URL from which to download the release package
-#   arch       - The target architecture (e.g., 'arm64' or 'intel64')
+#   arch       - The target architecture (e.g., 'arm64' or 'x64')
 #
 # Return values:
 #   0 - Success

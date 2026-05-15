@@ -78,7 +78,14 @@ if ($answer -eq 'Y' -Or $answer -eq '') {
 
   # Use lower case app name in filename and replace spaces with dashes (-) and remove single apostrophes (')
   $APP_NAME = $APP_NAME.ToLower().Replace(" ","-").Replace("'","")
-  Compress-Archive * ..\..\releases\windows\$APP_NAME-windows-$APP_VERSION.zip
+
+  $CPU_ARCH = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq [System.Runtime.InteropServices.Architecture]::Arm64) {
+    "arm64"
+  } else {
+      "x64"
+  }
+
+  Compress-Archive * ..\..\releases\windows\$APP_NAME-$APP_VERSION-win-$CPU_ARCH-cli.zip
 
 if ($IsGHA -ne 'Y') {
   cd ..\scripts

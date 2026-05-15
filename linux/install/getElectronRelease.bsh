@@ -10,7 +10,7 @@
 #
 # Parameters:
 #   $1 - downloadUrl: URL to download the Electron package from
-#   $2 - arch: Architecture type (e.g., 'arm64' or 'intel64')
+#   $2 - arch: Architecture type (e.g., 'arm64' or 'x64')
 #   $3 -d indicates generation of a development viewer (optional)
 #
 # Return Values:

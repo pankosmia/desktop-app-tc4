@@ -8,7 +8,7 @@ AppName={#GetEnv('APP_NAME')}
 AppVersion={#GetEnv('APP_VERSION')}
 DefaultDirName={commonpf}\{#GetEnv('APP_NAME')}
 DefaultGroupName={#GetEnv('APP_NAME')}
-OutputBaseFilename={#GetEnv('FILE_APP_NAME')}-windows-setup-standalone-{#GetEnv('APP_VERSION')}
+OutputBaseFilename={#GetEnv('FILE_APP_NAME')}-{#GetEnv('APP_VERSION')}-win-{#GetEnv('ARCH')}
 Compression=lzma
 SolidCompression=yes
 
