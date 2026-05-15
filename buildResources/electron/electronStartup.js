@@ -7,6 +7,7 @@
  * - Backend server process lifecycle
  * - Custom menu creation (especially for macOS)
  * - Application events and shutdown procedures
+ * - On-demand Firefox browser engine download for Puppeteer
  *
  * @description
  * The script manages the lifecycle of both the Electron frontend and a backend server process.
@@ -26,6 +27,45 @@ const { app, BrowserWindow, Menu, shell, ipcMain, ipcRenderer, contextBridge, di
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const net = require('net');
+const fs = require('fs');
+const puppeteer = require('puppeteer');
+const os = require('os');
+const { install, computeExecutablePath } = require('@puppeteer/browsers');
+const { pipeline } = require('stream/promises');
+
+const FIREFOX_VERSION = '149.0.2';
+const FIREFOX_BUILD_ID = 'stable_' + FIREFOX_VERSION;
+const BROWSER_CACHE_DIR = path.join(app.getPath('userData'), 'browsers');
+
+// Where the extracted Firefox binary lives on Windows
+const FIREFOX_WIN_EXTRACT_DIR = path.join(BROWSER_CACHE_DIR, 'firefox', 'win64-' + FIREFOX_BUILD_ID);
+
+function getFirefoxExecutablePath() {
+  if (process.platform === 'win32') {
+    return path.join(FIREFOX_WIN_EXTRACT_DIR, 'core', 'firefox.exe');
+  }
+  return computeExecutablePath({
+    browser: 'firefox',
+    buildId: FIREFOX_BUILD_ID,
+    cacheDir: BROWSER_CACHE_DIR,
+  });
+}
+
+function isFirefoxInstalled() {
+  const exePath = getFirefoxExecutablePath();
+  return fs.existsSync(exePath);
+}
+
+function getFirefoxExecutablePath() {
+  if (process.platform === 'win32') {
+    return path.join(FIREFOX_WIN_EXTRACT_DIR, 'firefox.exe');
+  }
+  return computeExecutablePath({
+    browser: 'firefox',
+    buildId: FIREFOX_BUILD_ID,
+    cacheDir: BROWSER_CACHE_DIR,
+  });
+}
 
 const env = {
   ...process.env,
@@ -79,6 +119,123 @@ function isServerRunning() {
   } catch {
     return false;
   }
+}
+
+// Helper to check if Firefox browser engine is downloaded
+function isFirefoxInstalled() {
+  try {
+    const executablePath = computeExecutablePath({
+      browser: 'firefox',
+      buildId: FIREFOX_BUILD_ID,
+      cacheDir: BROWSER_CACHE_DIR,
+    });
+    return fs.existsSync(executablePath);
+  } catch {
+    return false;
+  }
+}
+
+// Helper to get the Firefox executable path (used by generate-pdf)
+function getFirefoxExecutablePath() {
+  return computeExecutablePath({
+    browser: 'firefox',
+    buildId: FIREFOX_BUILD_ID,
+    cacheDir: BROWSER_CACHE_DIR,
+  });
+}
+
+/**
+ * Downloads and extracts Firefox on Windows using the silent /ExtractDir flag.
+ * This avoids running the installer and won't touch any existing Firefox installation.
+ */
+async function downloadFirefoxWindows(event) {
+  const url = `https://archive.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/win64/en-US/Firefox%20Setup%20${FIREFOX_VERSION}.exe`;
+  const tempExe = path.join(os.tmpdir(), `firefox-setup-${FIREFOX_VERSION}.exe`);
+  const extractDir = FIREFOX_WIN_EXTRACT_DIR;
+
+  console.log('Download URL:', url);
+  console.log('Temp file:', tempExe);
+  console.log('Extract to:', extractDir);
+
+  // Step 1: Download the .exe with progress
+  event.sender.send('download-progress', 0);
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Download failed: HTTP ${response.status} from ${url}`);
+  }
+
+  const totalBytes = parseInt(response.headers.get('content-length'), 10) || 0;
+  let downloadedBytes = 0;
+
+  // Ensure temp directory exists
+  fs.mkdirSync(path.dirname(tempExe), { recursive: true });
+
+  const fileStream = fs.createWriteStream(tempExe);
+  const reader = response.body.getReader();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    fileStream.write(Buffer.from(value));
+    downloadedBytes += value.length;
+    if (totalBytes > 0) {
+      const percent = Math.round((downloadedBytes / totalBytes) * 100);
+      event.sender.send('download-progress', percent);
+    }
+  }
+
+  fileStream.end();
+  await new Promise((resolve, reject) => {
+    fileStream.on('finish', resolve);
+    fileStream.on('error', reject);
+  });
+
+  console.log('Download complete, extracting...');
+  event.sender.send('download-progress', 100);
+
+// Step 2: Extract the self-extracting 7z archive
+const _7z = require('7zip-min');
+
+await new Promise((resolve, reject) => {
+  _7z.unpack(tempExe, extractDir, (err) => {
+    if (err) reject(new Error(`Firefox extraction failed: ${err.message}`));
+    else resolve();
+  });
+});
+
+  // Step 3: Clean up temp file
+  try {
+    fs.unlinkSync(tempExe);
+    console.log('Temp file cleaned up');
+  } catch {
+    console.warn('Could not delete temp file:', tempExe);
+  }
+
+  // Step 4: Verify extraction
+  const exePath = getFirefoxExecutablePath();
+  if (!fs.existsSync(exePath)) {
+    throw new Error(`Extraction appeared to succeed but firefox.exe not found at: ${exePath}`);
+  }
+
+  console.log('Firefox extracted successfully to:', exePath);
+}
+
+/**
+ * Downloads Firefox on macOS/Linux using @puppeteer/browsers install().
+ */
+async function downloadFirefoxDefault(event) {
+  await install({
+    browser: 'firefox',
+    buildId: FIREFOX_BUILD_ID,
+    cacheDir: BROWSER_CACHE_DIR,
+    onProgress: (downloadedBytes, totalBytes) => {
+      if (totalBytes > 0) {
+        const percent = Math.round((downloadedBytes / totalBytes) * 100);
+        event.sender.send('download-progress', percent);
+      }
+    },
+  });
 }
 
 function InitializeMenu() {
@@ -319,7 +476,34 @@ function createWindow() {
 
 app.whenReady().then(() => {
   ipcMain.on('setCanClose', handleSetCanClose);
-  ipcMain.handle("generate-pdf", async (event, uuid) => {
+
+  // IPC: Check if Firefox browser engine is already downloaded
+  ipcMain.handle('check-firefox-installed', async () => {
+    return isFirefoxInstalled();
+  });
+
+  // IPC: Download Firefox browser engine on user request
+  ipcMain.on('download-firefox', async (event) => {
+    console.log('download-firefox triggered');
+    console.log('Cache dir:', BROWSER_CACHE_DIR);
+    console.log('Build ID:', FIREFOX_BUILD_ID);
+    console.log('Platform:', process.platform);
+
+    try {
+      if (process.platform === 'win32') {
+        await downloadFirefoxWindows(event);
+      } else {
+        await downloadFirefoxDefault(event);
+      }
+      event.sender.send('download-complete', true);
+    } catch (err) {
+      console.error('Firefox download failed:', err.message);
+      console.error('Full error:', err);
+      event.sender.send('download-complete', false);
+    }
+  });
+
+    ipcMain.handle("generate-pdf", async (event, uuid) => {
     const browser = await puppeteer.launch({
       headless: "new",
       browser: "firefox",
