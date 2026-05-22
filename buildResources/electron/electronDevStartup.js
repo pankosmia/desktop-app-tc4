@@ -20,27 +20,42 @@
  * - Environment variable APP_NAME must be set for proper application naming
  */
 
-const { app, BrowserWindow, Menu, shell, ipcMain, ipcRenderer, contextBridge, dialog } = require('electron');
-const { spawn, execSync } = require('child_process');
-const path = require('path');
-const net = require('net');
-
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  shell,
+  ipcMain,
+  ipcRenderer,
+  contextBridge,
+  dialog,
+} = require("electron");
+const { spawn, execSync } = require("child_process");
+const path = require("path");
+const net = require("net");
+const puppeteer = require("puppeteer");
 const env = {
   ...process.env,
-  APP_RESOURCES_DIR: process.env.APP_RESOURCES_DIR === undefined ? './lib/' : process.env.APP_RESOURCES_DIR,
+  APP_RESOURCES_DIR:
+    process.env.APP_RESOURCES_DIR === undefined
+      ? "./lib/"
+      : process.env.APP_RESOURCES_DIR,
 };
 
 function findFreePort(start = 19119, end = 65535) {
   return new Promise((resolve, reject) => {
     let port = start;
     function tryPort() {
-      if (port > end) return reject(new Error('free port not found'));
+      if (port > end) return reject(new Error("free port not found"));
       const server = net.createServer();
-      server.once('error', () => { port++; tryPort(); });
-      server.once('listening', () => {
+      server.once("error", () => {
+        port++;
+        tryPort();
+      });
+      server.once("listening", () => {
         server.close(() => resolve(port));
       });
-      server.listen(port, '127.0.0.1');
+      server.listen(port, "127.0.0.1");
     }
     tryPort();
   });
@@ -48,123 +63,129 @@ function findFreePort(start = 19119, end = 65535) {
 
 // Use existing env var or find one
 async function getPort() {
-  if (env.ROCKET_PORT && env.ROCKET_PORT.trim() !== '') {
+  if (env.ROCKET_PORT && env.ROCKET_PORT.trim() !== "") {
     return Number(env.ROCKET_PORT);
   }
   return await findFreePort(19119);
 }
 
 getPort()
-  .then(port => {
-    console.log('Using port ', port);
+  .then((port) => {
+    console.log("Using port ", port);
     if (env.ROCKET_PORT === undefined) env.ROCKET_PORT = port;
   })
-  .catch(err => {
-    console.error('Failed to obtain port:', err);
+  .catch((err) => {
+    console.error("Failed to obtain port:", err);
     app.quit?.();
   });
 
-app.name = '${APP_NAME}';
+app.name = "${APP_NAME}";
 let canClose = true;
 
 function InitializeMenu() {
-  const isMac = process.platform === 'darwin';
+  const isMac = process.platform === "darwin";
   const template = [
     {
-      label: 'Edit',
+      label: "Edit",
       submenu: [
-        {role: 'undo'},
-        {role: 'redo'},
-        {type: 'separator'},
-        {role: 'cut'},
-        {role: 'copy'},
-        {role: 'paste'},
-        {role: 'pasteAndMatchStyle'},
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "pasteAndMatchStyle" },
         // {role: 'delete'},
-        {role: 'selectAll'}
-      ]
+        { role: "selectAll" },
+      ],
     },
     {
-      label: 'View',
+      label: "View",
       submenu: [
         {
-          label: 'Default Zoom',
-          accelerator: isMac ? 'Cmd+0' : 'Ctrl+0',
+          label: "Default Zoom",
+          accelerator: isMac ? "Cmd+0" : "Ctrl+0",
           click: (_menuItem, browserWindow) => {
             const win = browserWindow || BrowserWindow.getFocusedWindow();
             if (!win) return;
             win.webContents.setZoomLevel(0);
-          }
+          },
         },
-        {role: 'zoomin'},
-        {role: 'zoomout'},
+        { role: "zoomin" },
+        { role: "zoomout" },
         // {type: 'separator'}
         // {role: 'togglefullscreen'}
-      ]
+      ],
     },
     {
-      label: 'Window',
+      label: "Window",
       submenu: [
         {
-          label: 'Reload',
-          accelerator: isMac ? 'Cmd+R' : 'Ctrl+R',
-          click: (menuItem, bw) => { if (bw) bw.webContents.reload(); }
+          label: "Reload",
+          accelerator: isMac ? "Cmd+R" : "Ctrl+R",
+          click: (menuItem, bw) => {
+            if (bw) bw.webContents.reload();
+          },
         },
         {
-          label: 'Force Reload',
-          accelerator: isMac ? 'Shift+Cmd+R' : 'Ctrl+Shift+R',
-          click: (menuItem, bw) => { if (bw) bw.webContents.reloadIgnoringCache(); }
+          label: "Force Reload",
+          accelerator: isMac ? "Shift+Cmd+R" : "Ctrl+Shift+R",
+          click: (menuItem, bw) => {
+            if (bw) bw.webContents.reloadIgnoringCache();
+          },
         },
         {
-          label: 'Toggle Developer Tools',
-          accelerator: isMac ? 'Alt+Cmd+I' : 'Ctrl+Shift+I',
-          click: (menuItem, bw) => { if (bw) bw.webContents.toggleDevTools(); }
-        }
+          label: "Toggle Developer Tools",
+          accelerator: isMac ? "Alt+Cmd+I" : "Ctrl+Shift+I",
+          click: (menuItem, bw) => {
+            if (bw) bw.webContents.toggleDevTools();
+          },
+        },
         // {role: 'minimize'},
         // {role: 'zoom'},
         // {type: 'separator'},
         // {role: 'front'},
         // {role: 'window'}
-      ]
-    }
+      ],
+    },
   ];
 
   if (isMac) {
-    template.unshift(  {
+    template.unshift({
       label: app.name, // <--- This name will NOT show up in the macOS app menu, will need to update the Info.plist in the Electron folder
       submenu: [
-        {role: 'hide'},
-        {role: 'hideothers'},
-        {role: 'unhide'},
-        {type: 'separator'},
-        {role: 'quit'}
-      ]
+        { role: "hide" },
+        { role: "hideothers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
     });
   }
-    // Removed:
-    /**
+  // Removed:
+  /**
           {role: 'about'},
           {type: 'separator'},
           {role: 'services'},
           {type: 'separator'},
     */
 
-    try {
-      const initialMenu = Menu.getApplicationMenu();
-      // console.log('initialMenu', initialMenu);
+  try {
+    const initialMenu = Menu.getApplicationMenu();
+    // console.log('initialMenu', initialMenu);
 
-      // build menu
-      // const menu = isMac ? Menu.buildFromTemplate(template) : [];
-      const menu = Menu.buildFromTemplate(template);
-      Menu.setApplicationMenu(menu);
-      //console.log('Menu set successfully');
+    // build menu
+    // const menu = isMac ? Menu.buildFromTemplate(template) : [];
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+    //console.log('Menu set successfully');
 
-      const currentMenu = Menu.getApplicationMenu();
-      // console.log('Current application menu:', currentMenu ? 'Set successfully' : 'Not set');
-      // console.log('currentMenu', currentMenu);
-    } catch (error) {
-      console.error('Failed to set application menu:', error);
-    }
+    const currentMenu = Menu.getApplicationMenu();
+    // console.log('Current application menu:', currentMenu ? 'Set successfully' : 'Not set');
+    // console.log('currentMenu', currentMenu);
+  } catch (error) {
+    console.error("Failed to set application menu:", error);
+  }
 }
 
 /**
@@ -173,107 +194,166 @@ function InitializeMenu() {
  * @returns {Promise<unknown>}
  */
 function delay(ms) {
-  return new Promise((resolve) =>
-    setTimeout(resolve, ms)
-  );
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function handleSetCanClose(event, newCanClose) {
-    canClose = newCanClose;
+  canClose = newCanClose;
 }
 
 function createWindow() {
+  console.log("resourcesDir is " + env.APP_RESOURCES_DIR);
 
-  console.log('resourcesDir is ' + env.APP_RESOURCES_DIR);
+  delay(500).then(() => {
+    // console.log('createWindow() - dev viewer');
+    const win = new BrowserWindow({
+      width: 1024,
+      height: 768,
+      minWidth: 900,
+      minHeight: 600,
+      autoHideMenuBar: false,
+      show: false, // Don't show until ready to maximize
+      icon: path.join(__dirname, "favicon.png"),
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        nodeIntegration: false, //default is also false. True leads to console error.
+        contextIsolation: true, //default is also true. What is the impact of changing this to false?
+        enableRemoteModule: false, //default is also false. What is the impact of changing this to true?
+        sandbox: false, // default is also false
+      },
+    });
 
-    delay(500).then(() => {
-        // console.log('createWindow() - dev viewer');
-        const win = new BrowserWindow({
-            width: 1024,
-            height: 768,
-            minWidth: 900,
-            minHeight: 600,
-            autoHideMenuBar: false,
-            show: false,  // Don't show until ready to maximize
-            icon: path.join(__dirname, 'favicon.png'),
-            webPreferences: {
-                preload: path.join(__dirname, 'preload.js'),
-                nodeIntegration: false, //default is also false. True leads to console error.
-                contextIsolation: true, //default is also true. What is the impact of changing this to false?
-                enableRemoteModule: false, //default is also false. What is the impact of changing this to true?
-                sandbox: false, // default is also false
-              }
-        });
+    win.once("ready-to-show", () => {
+      win.maximize();
+      win.show();
+      setTimeout(() => {
+        InitializeMenu();
+        win.show();
+        win.maximize();
+      }, 300);
+    });
 
-        win.once('ready-to-show', () => {
-            win.maximize();
-            win.show();
-            setTimeout(() => {
-                InitializeMenu();
-                win.show();
-                win.maximize();
-              }, 300);
-        });
-
-        // Show a dialog to the user to confirm the close
-        win.on('close', (event) => {
-            if (!canClose) {
-                event.preventDefault();
-                dialog.showMessageBox(win, {
-                    type: 'question',
-                    title: 'Unsaved changes',
-                    message: 'You have unsaved changes. Are you sure you want to close the application?',
-                    buttons: ['Yes', 'No'],
-                }).then((result) => {
-                    if (result.response === 0) {
-                        canClose = true;
-                        win.close();
-                    }
-                });
+    // Show a dialog to the user to confirm the close
+    win.on("close", (event) => {
+      if (!canClose) {
+        event.preventDefault();
+        dialog
+          .showMessageBox(win, {
+            type: "question",
+            title: "Unsaved changes",
+            message:
+              "You have unsaved changes. Are you sure you want to close the application?",
+            buttons: ["Yes", "No"],
+          })
+          .then((result) => {
+            if (result.response === 0) {
+              canClose = true;
+              win.close();
             }
-        });
+          });
+      }
+    });
 
-        // Show a dialog to the user switch pages
-        win.webContents.on('will-navigate', async (event, url) => {
-            if (!canClose) {
-                event.preventDefault();
-                dialog.showMessageBox(win, {
-                    title: 'Unsaved changes',
-                    type: 'question',
-                    message: 'You have unsaved changes. Are you sure you want to leave this page?',
-                    buttons: ['Yes', 'No'],
-                }).then((result) => {
-                    if (result.response === 0) {
-                        canClose = true;
-                        win.loadURL(url);
-                    }
-                });
+    // Show a dialog to the user switch pages
+    win.webContents.on("will-navigate", async (event, url) => {
+      if (!canClose) {
+        event.preventDefault();
+        dialog
+          .showMessageBox(win, {
+            title: "Unsaved changes",
+            type: "question",
+            message:
+              "You have unsaved changes. Are you sure you want to leave this page?",
+            buttons: ["Yes", "No"],
+          })
+          .then((result) => {
+            if (result.response === 0) {
+              canClose = true;
+              win.loadURL(url);
             }
-        });
+          });
+      }
+    });
 
-        win.loadURL(`http://127.0.0.1:${env.ROCKET_PORT}`);
-    })
-
+    win.loadURL(`http://127.0.0.1:${env.ROCKET_PORT}`);
+  });
 }
 
 app.whenReady().then(() => {
-  ipcMain.on('setCanClose', handleSetCanClose);
+  ipcMain.on("setCanClose", handleSetCanClose);
 
-  setTimeout(createWindow, 0); // Do not wait for server to start (dev viewer)
+  ipcMain.handle("generate-pdf", async (event, uuid) => {
+    const browser = await puppeteer.launch({
+      headless: true,
+      browser: "firefox",
+    });
+
+    try {
+      const page = await browser.newPage();
+      page.setDefaultTimeout(0);
+      page.setDefaultNavigationTimeout(0);
+      // Fetch HTML from temp storage
+      const response = await fetch(
+        `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes/${uuid}`,
+        {
+          method: "GET",
+        },
+      );
+
+      const resultHTML = await response.text();
+
+      await page.setContent(resultHTML, {
+        waitUntil: "domcontentloaded",
+      });
+      // Generate PDF buffer directly
+      const pdfBuffer = await page.pdf({
+        format: "A3",
+        printBackground: true,
+      });
+      // Create multipart form
+      const formData = new FormData();
+
+      const blob = new Blob([pdfBuffer], {
+        type: "application/pdf",
+      });
+
+      formData.append("file", blob, "document.pdf");
+
+      // Upload PDF to temp endpoint
+      const uploadResponse = await fetch(
+        `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      const uploadResult = await uploadResponse.json();
+
+      // returns { uuid: "..." }
+      return uploadResult.uuid;
+    } finally {
+      await browser.close();
+    }
+  });
+
+  setTimeout(createWindow, 0);
 });
 
-app.on('window-all-closed', () => {
-  console.log('window-all-closed() - app quitting');
+app.on("window-all-closed", () => {
+  console.log("window-all-closed() - app quitting");
   // On macOS, apps are expected to stay alive until explicitly quit
   // but we quit anyway so server doesn't remain running
   app.quit();
 });
 
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    console.log('activate() - app creating window since there are none');
+    console.log("activate() - app creating window since there are none");
     createWindow();
   } else {
-    console.log('activate() - app not creating window since there are already windows');
+    console.log(
+      "activate() - app not creating window since there are already windows",
+    );
   }
 });
