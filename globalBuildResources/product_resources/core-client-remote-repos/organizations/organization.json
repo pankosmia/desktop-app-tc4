@@ -1,0 +1,16 @@
+{
+  "organizations": [
+    {
+      "name": "unfoldingWord (SB resources)",
+      "url": "git.door43.org/uW"
+    },
+      {
+      "name": "unfoldingWord",
+      "url": "git.door43.org/unfoldingWord"
+    },
+    {
+        "name":"Aquifer",
+        "url":"git.door43.org/shower"
+    }
+  ]
+}
