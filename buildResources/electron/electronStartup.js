@@ -502,42 +502,70 @@ app.whenReady().then(() => {
       event.sender.send('download-complete', false);
     }
   });
+ try { ipcMain.handle("generate-pdf", async (event, uuid) => {
+    // Ensure Firefox is installed before attempting PDF generation
+    if (!isFirefoxInstalled()) {
+      throw new Error('Firefox browser engine is not installed. Please download it first.');
+    }
 
-    ipcMain.handle("generate-pdf", async (event, uuid) => {
     const browser = await puppeteer.launch({
       headless: "new",
       browser: "firefox",
+      executablePath: getFirefoxExecutablePath(),
     });
     const result = await dialog.showSaveDialog();
 
     const page = await browser.newPage();
-    const response = await fetch(
-      `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes/${uuid}`,
-      {
-        method: "GET",
-      },
-    );
+      page.setDefaultTimeout(0);
+      page.setDefaultNavigationTimeout(0);
+      // Fetch HTML from temp storage
+      const response = await fetch(
+        `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes/${uuid}`,
+        {
+          method: "GET",
+        },
+      );
 
-    const resultHTML = await response.text();
-    await page.setContent(resultHTML, {
-      waitUntil: "networkidle0",
-    });
+      const resultHTML = await response.text();
 
-    await page.evaluate(() => document.fonts.ready);
+      await page.setContent(resultHTML, {
+        waitUntil: "domcontentloaded",
+      });
+      // Generate PDF buffer directly
+      const pdfBuffer = await page.pdf({
+        format: "A3",
+        printBackground: true,
+      });
+      // Create multipart form
+      const formData = new FormData();
 
-    await page.pdf({
-      path: result.filePath,
-      format: "A3",
-      printBackground: true,
-    });
+      const blob = new Blob([pdfBuffer], {
+        type: "application/pdf",
+      });
 
-    await browser.close();
+      formData.append("file", blob, "document.pdf");
 
-    return result.filePath;
-  });  
+      // Upload PDF to temp endpoint
+      const uploadResponse = await fetch(
+        `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      const uploadResult = await uploadResponse.json();
+
+      // returns { uuid: "..." }
+      return uploadResult.uuid
+    })
+    } finally {
+      await browser.close();
+    }
   startServer();
   setTimeout(createWindow, 2000); // Wait 2 seconds for server to start (adjust as needed)
 });
+
 
 app.on('window-all-closed', () => {
   console.log('window-all-closed() - app quitting');

@@ -21,29 +21,42 @@
  * - Environment variable APP_NAME must be set for proper application naming
  */
 
-const { app, BrowserWindow, Menu, shell, ipcMain, ipcRenderer, contextBridge, dialog } = require('electron');
-const { spawn, execSync } = require('child_process');
-const path = require('path');
-const net = require('net');
-const fs = require('fs');
-const puppeteer = require('puppeteer');
-const os = require('os');
-const { install, computeExecutablePath } = require('@puppeteer/browsers');
-const { pipeline } = require('stream/promises');
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  shell,
+  ipcMain,
+  ipcRenderer,
+  contextBridge,
+  dialog,
+} = require("electron");
+const { spawn, execSync } = require("child_process");
+const path = require("path");
+const net = require("net");
+const fs = require("fs");
+const puppeteer = require("puppeteer");
+const os = require("os");
+const { install, computeExecutablePath } = require("@puppeteer/browsers");
+const { pipeline } = require("stream/promises");
 
-const FIREFOX_VERSION = '149.0.2';
-const FIREFOX_BUILD_ID = 'stable_' + FIREFOX_VERSION;
-const BROWSER_CACHE_DIR = path.join(app.getPath('userData'), 'browsers');
+const FIREFOX_VERSION = "149.0.2";
+const FIREFOX_BUILD_ID = "stable_" + FIREFOX_VERSION;
+const BROWSER_CACHE_DIR = path.join(app.getPath("userData"), "browsers");
 
 // Where the extracted Firefox binary lives on Windows
-const FIREFOX_WIN_EXTRACT_DIR = path.join(BROWSER_CACHE_DIR, 'firefox', 'win64-' + FIREFOX_BUILD_ID);
+const FIREFOX_WIN_EXTRACT_DIR = path.join(
+  BROWSER_CACHE_DIR,
+  "firefox",
+  "win64-" + FIREFOX_BUILD_ID,
+);
 
 function getFirefoxExecutablePath() {
-  if (process.platform === 'win32') {
-    return path.join(FIREFOX_WIN_EXTRACT_DIR, 'core', 'firefox.exe');
+  if (process.platform === "win32") {
+    return path.join(FIREFOX_WIN_EXTRACT_DIR, "core", "firefox.exe");
   }
   return computeExecutablePath({
-    browser: 'firefox',
+    browser: "firefox",
     buildId: FIREFOX_BUILD_ID,
     cacheDir: BROWSER_CACHE_DIR,
   });
@@ -55,11 +68,11 @@ function isFirefoxInstalled() {
 }
 
 function getFirefoxExecutablePath() {
-  if (process.platform === 'win32') {
-    return path.join(FIREFOX_WIN_EXTRACT_DIR, 'firefox.exe');
+  if (process.platform === "win32") {
+    return path.join(FIREFOX_WIN_EXTRACT_DIR, "firefox.exe");
   }
   return computeExecutablePath({
-    browser: 'firefox',
+    browser: "firefox",
     buildId: FIREFOX_BUILD_ID,
     cacheDir: BROWSER_CACHE_DIR,
   });
@@ -117,7 +130,7 @@ let canClose = true;
 function isFirefoxInstalled() {
   try {
     const executablePath = computeExecutablePath({
-      browser: 'firefox',
+      browser: "firefox",
       buildId: FIREFOX_BUILD_ID,
       cacheDir: BROWSER_CACHE_DIR,
     });
@@ -130,7 +143,7 @@ function isFirefoxInstalled() {
 // Helper to get the Firefox executable path (used by generate-pdf)
 function getFirefoxExecutablePath() {
   return computeExecutablePath({
-    browser: 'firefox',
+    browser: "firefox",
     buildId: FIREFOX_BUILD_ID,
     cacheDir: BROWSER_CACHE_DIR,
   });
@@ -142,22 +155,25 @@ function getFirefoxExecutablePath() {
  */
 async function downloadFirefoxWindows(event) {
   const url = `https://archive.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/win64/en-US/Firefox%20Setup%20${FIREFOX_VERSION}.exe`;
-  const tempExe = path.join(os.tmpdir(), `firefox-setup-${FIREFOX_VERSION}.exe`);
+  const tempExe = path.join(
+    os.tmpdir(),
+    `firefox-setup-${FIREFOX_VERSION}.exe`,
+  );
   const extractDir = FIREFOX_WIN_EXTRACT_DIR;
 
-  console.log('Download URL:', url);
-  console.log('Temp file:', tempExe);
-  console.log('Extract to:', extractDir);
+  console.log("Download URL:", url);
+  console.log("Temp file:", tempExe);
+  console.log("Extract to:", extractDir);
 
   // Step 1: Download the .exe with progress
-  event.sender.send('download-progress', 0);
+  event.sender.send("download-progress", 0);
 
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Download failed: HTTP ${response.status} from ${url}`);
   }
 
-  const totalBytes = parseInt(response.headers.get('content-length'), 10) || 0;
+  const totalBytes = parseInt(response.headers.get("content-length"), 10) || 0;
   let downloadedBytes = 0;
 
   // Ensure temp directory exists
@@ -173,44 +189,46 @@ async function downloadFirefoxWindows(event) {
     downloadedBytes += value.length;
     if (totalBytes > 0) {
       const percent = Math.round((downloadedBytes / totalBytes) * 100);
-      event.sender.send('download-progress', percent);
+      event.sender.send("download-progress", percent);
     }
   }
 
   fileStream.end();
   await new Promise((resolve, reject) => {
-    fileStream.on('finish', resolve);
-    fileStream.on('error', reject);
+    fileStream.on("finish", resolve);
+    fileStream.on("error", reject);
   });
 
-  console.log('Download complete, extracting...');
-  event.sender.send('download-progress', 100);
+  console.log("Download complete, extracting...");
+  event.sender.send("download-progress", 100);
 
-// Step 2: Extract the self-extracting 7z archive
-const _7z = require('7zip-min');
+  // Step 2: Extract the self-extracting 7z archive
+  const _7z = require("7zip-min");
 
-await new Promise((resolve, reject) => {
-  _7z.unpack(tempExe, extractDir, (err) => {
-    if (err) reject(new Error(`Firefox extraction failed: ${err.message}`));
-    else resolve();
+  await new Promise((resolve, reject) => {
+    _7z.unpack(tempExe, extractDir, (err) => {
+      if (err) reject(new Error(`Firefox extraction failed: ${err.message}`));
+      else resolve();
+    });
   });
-});
 
   // Step 3: Clean up temp file
   try {
     fs.unlinkSync(tempExe);
-    console.log('Temp file cleaned up');
+    console.log("Temp file cleaned up");
   } catch {
-    console.warn('Could not delete temp file:', tempExe);
+    console.warn("Could not delete temp file:", tempExe);
   }
 
   // Step 4: Verify extraction
   const exePath = getFirefoxExecutablePath();
   if (!fs.existsSync(exePath)) {
-    throw new Error(`Extraction appeared to succeed but firefox.exe not found at: ${exePath}`);
+    throw new Error(
+      `Extraction appeared to succeed but firefox.exe not found at: ${exePath}`,
+    );
   }
 
-  console.log('Firefox extracted successfully to:', exePath);
+  console.log("Firefox extracted successfully to:", exePath);
 }
 
 /**
@@ -218,13 +236,13 @@ await new Promise((resolve, reject) => {
  */
 async function downloadFirefoxDefault(event) {
   await install({
-    browser: 'firefox',
+    browser: "firefox",
     buildId: FIREFOX_BUILD_ID,
     cacheDir: BROWSER_CACHE_DIR,
     onProgress: (downloadedBytes, totalBytes) => {
       if (totalBytes > 0) {
         const percent = Math.round((downloadedBytes / totalBytes) * 100);
-        event.sender.send('download-progress', percent);
+        event.sender.send("download-progress", percent);
       }
     },
   });
@@ -431,85 +449,120 @@ app.whenReady().then(() => {
   ipcMain.on("setCanClose", handleSetCanClose);
 
   // IPC: Check if Firefox browser engine is already downloaded
-  ipcMain.handle('check-firefox-installed', async () => {
+  ipcMain.handle("check-firefox-installed", async () => {
     return isFirefoxInstalled();
   });
 
   // IPC: Download Firefox browser engine on user request
-  ipcMain.on('download-firefox', async (event) => {
-    console.log('download-firefox triggered');
-    console.log('Cache dir:', BROWSER_CACHE_DIR);
-    console.log('Build ID:', FIREFOX_BUILD_ID);
-    console.log('Platform:', process.platform);
+  ipcMain.on("download-firefox", async (event) => {
+    console.log("download-firefox triggered");
+    console.log("Cache dir:", BROWSER_CACHE_DIR);
+    console.log("Build ID:", FIREFOX_BUILD_ID);
+    console.log("Platform:", process.platform);
 
     try {
-      if (process.platform === 'win32') {
+      if (process.platform === "win32") {
         await downloadFirefoxWindows(event);
       } else {
         await downloadFirefoxDefault(event);
       }
-      event.sender.send('download-complete', true);
+      event.sender.send("download-complete", true);
     } catch (err) {
-      console.error('Firefox download failed:', err.message);
-      console.error('Full error:', err);
-      event.sender.send('download-complete', false);
+      console.error("Firefox download failed:", err.message);
+      console.error("Full error:", err);
+      event.sender.send("download-complete", false);
     }
   });
-  
+
   ipcMain.handle("generate-pdf", async (event, uuid) => {
+    // Ensure Firefox is installed before attempting PDF generation
+    if (!isFirefoxInstalled()) {
+      throw new Error(
+        "Firefox browser engine is not installed. Please download it first.",
+      );
+    }
+
     const browser = await puppeteer.launch({
       headless: true,
       browser: "firefox",
+      // args: ["-safe-mode"],
+      executablePath: getFirefoxExecutablePath(),
+      extraPrefsFirefox: {
+        "browser.startup.page": 1,
+        "print.always_print_silent": true, // skip print dialog
+        "print.show_print_progress": false, // disable progress UI
+        "pdfjs.disabled": true, // don't intercept with PDF.js
+      },
+      protocolTimeout: 900000, // ← fixes your exact error
+      timeout: 900000,
+    });
+    // const result = await dialog.showSaveDialog();
+
+    const page = await browser.newPage();
+    page.setDefaultTimeout(900000);
+    page.setDefaultNavigationTimeout(900000);
+    // Fetch HTML from temp storage
+    const response = await fetch(
+      `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes/${uuid}`,
+      {
+        method: "GET",
+      },
+    );
+
+    const resultHTML = await response.text();
+
+    await page.setContent(resultHTML, {
+      waitUntil: "networkidle0",
     });
 
-    try {
-      const page = await browser.newPage();
-      page.setDefaultTimeout(0);
-      page.setDefaultNavigationTimeout(0);
-      // Fetch HTML from temp storage
-      const response = await fetch(
-        `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes/${uuid}`,
-        {
-          method: "GET",
-        },
-      );
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let lastHeight = 0;
 
-      const resultHTML = await response.text();
+        const check = setInterval(() => {
+          window.scrollTo(0, document.body.scrollHeight);
 
-      await page.setContent(resultHTML, {
-        waitUntil: "domcontentloaded",
+          if (document.body.scrollHeight === lastHeight) {
+            clearInterval(check);
+            resolve();
+          }
+
+          lastHeight = document.body.scrollHeight;
+        }, 400);
       });
-      // Generate PDF buffer directly
-      const pdfBuffer = await page.pdf({
-        format: "A3",
-        printBackground: true,
-      });
-      // Create multipart form
-      const formData = new FormData();
+    });
+    // await page.waitForSelector("#print-ready-marker");
+    // Generate PDF buffer directly
+    const pdfBuffer = await page.pdf({
+      format: "A3",
+      printBackground: true,
+      timeout: 900000, // 5 minutes
+    });
+    // Create multipart form
+    const formData = new FormData();
 
-      const blob = new Blob([pdfBuffer], {
-        type: "application/pdf",
-      });
+    const blob = new Blob([pdfBuffer], {
+      type: "application/pdf",
+    });
 
-      formData.append("file", blob, "document.pdf");
+    formData.append("file", blob, "document.pdf");
 
-      // Upload PDF to temp endpoint
-      const uploadResponse = await fetch(
-        `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+    // Upload PDF to temp endpoint
+    const uploadResponse = await fetch(
+      `http://127.0.0.1:${env.ROCKET_PORT}/temp/bytes`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
 
-      const uploadResult = await uploadResponse.json();
+    const uploadResult = await uploadResponse.json();
 
-      // returns { uuid: "..." }
-      return uploadResult.uuid;
-    } finally {
-      await browser.close();
-    }
+    // returns { uuid: "..." }
+    // await browser.close();
+    return JSON.parse(JSON.stringify(uploadResult.uuid));
   });
+
   setTimeout(createWindow, 0); // Do not wait for server to start (dev viewer)
 });
 

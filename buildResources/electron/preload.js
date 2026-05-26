@@ -20,7 +20,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('api', {
-  // Existing
-  generatePdf: (uuid) => ipcRenderer.invoke('generate-pdf', uuid),
-
+  generatePdf: async (uuid) => ipcRenderer.invoke('generate-pdf', uuid),
 });
