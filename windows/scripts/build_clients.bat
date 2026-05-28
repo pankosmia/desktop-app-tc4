@@ -142,6 +142,7 @@ for /l %%a in (1,1,%count%) do (
       call :log !ASSET%%a! does not exist; Run .\clone.bat
       call :log ****************************************************
       call :log
+      call :markfail "ASSET" "!ASSET%%a!" "directory not found; run .\clone.bat"
     ) else (
       cd !ASSET%%a!
       call :checkout_branch "ASSET" "!ASSET%%a!"
@@ -165,6 +166,7 @@ for /l %%a in (1,1,%count%) do (
       call :log !CLIENT%%a! does not exist; Run .\clone.bat then rerun .\build_clients_main.bat
       call :log ***************************************************************************************
       call :log
+      call :markfail "CLIENT" "!CLIENT%%a!" "directory not found; run .\clone.bat"
     ) else (
       cd !CLIENT%%a!
       call :checkout_branch "CLIENT" "!CLIENT%%a!"
@@ -222,6 +224,13 @@ REM Uses %BRANCH% and %FALLBACK_TIER% to determine checkout with fallback.
 REM Sets CHECKED_OUT_BRANCH to the branch that was actually checked out.
 set "CB_TYPE=%~1"
 set "CB_REPO=%~2"
+
+REM Fetch remote refs so all remote branches are known
+call :log -- git fetch origin...
+call :run git fetch origin
+if errorlevel 1 (
+  call :log -- WARNING: git fetch failed; proceeding with possibly stale remote refs
+)
 
 call :log -- git checkout %BRANCH%...
 call :run git checkout "%BRANCH%"

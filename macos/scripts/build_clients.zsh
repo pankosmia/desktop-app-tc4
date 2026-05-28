@@ -114,6 +114,12 @@ checkout_branch() {
   local cb_repo="$2"
   local branch_lower="${BRANCH:l}"
 
+  # Fetch remote refs so all remote branches are known
+  log "> git fetch origin..."
+  if ! run git fetch origin; then
+    log "> WARNING: git fetch failed; proceeding with possibly stale remote refs"
+  fi
+
   log "> git checkout $BRANCH..."
   if run git checkout "$BRANCH"; then
     CHECKED_OUT_BRANCH="$BRANCH"
@@ -239,6 +245,7 @@ for ((i=1;i<=count;i++)); do
       log "$asset does not exist; Run ./clone.zsh"
       log "****************************************************"
       log
+      markfail "ASSET" "$asset" "directory not found; Run ./clone.bsh"
     else
       cd "$asset"
       checkout_branch "ASSET" "$asset"
@@ -262,6 +269,7 @@ for ((i=1;i<=count;i++)); do
       log "$client does not exist; Run ./clone.zsh then rerun this script"
       log "***************************************************************************************"
       log
+      markfail "CLIENT" "$client" "directory not found; Run ./clone.bsh"
     else
       cd "$client"
       checkout_branch "CLIENT" "$client"
