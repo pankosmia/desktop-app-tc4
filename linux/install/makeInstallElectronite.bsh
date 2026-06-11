@@ -125,10 +125,8 @@ if [ "$ELECTRON_OWNER" != "$CURRENT_USER" ]; then
     exit 1
 fi
 
-
-chmod 755 ${APP_BASE_DIR}/linux
-
 if ! [[ $devRun =~ ^(-d) ]]; then
+  chmod 755 ${APP_BASE_DIR}/linux
   cp -R ./bin ${APP_BASE_DIR}/
   echo "copied bin to $APP_BASE_DIR/"
   chmod 755 ${APP_BASE_DIR}/bin/server.bin
